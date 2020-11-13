@@ -1,0 +1,117 @@
+import sympy as sym
+
+# Define all involved symbolic variables
+# constants
+M, m, g, ell = sym.symbols('M, m, g, ell')
+
+# system variables
+x1, x2, x3, x4, F = sym.symbols('x1, x2, x3, x4, F')
+
+# Define φ
+phi = 4 * m * ell * x4**2 * sym.sin(x3) + 4 * F - 3 * m * g * sym.sin(x3) * sym.cos(x3)
+phi /= 4 * (M + m) - 3 * m * sym.cos(x3)**2
+
+# Define Ψ
+psi = -3 * (m * ell * x4**2 * sym.sin(x3) * sym.cos(x3) + F * sym.cos(x3) - (M + m) * g * sym.sin(x3))
+psi /= ell * (4 * (M + m) - 3 * m * sym.cos(x3)**2)
+
+
+# Implement function to take symbolic expression dependant on F, x3 & x4
+# and evaluate it at equilibrium points F0, x30, x40
+def evaluate_at_equilibrium(f):
+    return f.subs([(F, F0), (x3, x30), (x4, x40)])
+
+
+# Define equilibrium points (all 0 in this case)
+F0 = 0
+x30 = 0
+x40 = 0
+
+# Compute the derivatives of φ at the equilibrium point
+phi_deriv_F_at_equlibrium = evaluate_at_equilibrium(phi.diff(F))
+phi_deriv_x3_at_equlibrium = evaluate_at_equilibrium(phi.diff(x3))
+phi_deriv_x4_at_equlibrium = evaluate_at_equilibrium(phi.diff(x4))
+
+# Compute the derivatives of Ψ at the equilibrium point
+psi_deriv_F_at_equlibrium = evaluate_at_equilibrium(psi.diff(F))
+psi_deriv_x3_at_equlibrium = evaluate_at_equilibrium(psi.diff(x3))
+psi_deriv_x4_at_equlibrium = evaluate_at_equilibrium(psi.diff(x4))
+
+# Declare determined values of a-d
+a = phi_deriv_F_at_equlibrium
+b = -phi_deriv_x3_at_equlibrium
+c = -psi_deriv_F_at_equlibrium
+d = psi_deriv_x3_at_equlibrium
+
+# State values of given parameters
+M_value = 0.3
+m_value = 0.1
+ell_value = 0.35
+g_value = 9.81
+
+# Substitute values of the constants into the equations for a-d
+a_value = a.subs([(M, M_value), (m, m_value)])
+b_value = b.subs([(M, M_value), (m, m_value), (g, g_value)])
+c_value = c.subs([(M, M_value), (m, m_value), (g, g_value), (ell, ell_value)])
+d_value = d.subs([(M, M_value), (m, m_value), (g, g_value), (ell, ell_value)])
+
+# Declare additional symbols from the transfer function
+s, t = sym.symbols('s, t')
+w = sym.symbols('w', real=True)     # w represents omega
+# a-d must be positive for inverse Laplace transform to function correctly
+a, b, c, d = sym.symbols('a:d', real=True, positive=True)
+
+# Declare transfer functions G_theta and G_x
+# from derivation on additional notes 2
+G_theta = -c / (s**2 - d)
+G_x = ((a * s**2) - (a * d) + (b * c)) / (s**4 - (s**2 * d))
+
+# Perform an impulse (kick), step (push) and frequency (shake) response
+# Kick -> Dirac pulse: F_s = 1
+# Push -> Step response: F_s = 1/s
+# Shake -> Freq. response: F_s = 1/(s**2 + 1)
+F_s_kick = 1
+F_s_push = 1/s
+F_s_shake = w / (s**2 + w**2)
+
+# G_theta responses for kick, push and shake
+X3_s_kick = G_theta * F_s_kick
+x3_t_kick = sym.inverse_laplace_transform(X3_s_kick, s, t)
+
+X3_s_push = G_theta * F_s_push
+x3_t_push = sym.inverse_laplace_transform(X3_s_push, s, t)
+
+X3_s_shake = G_theta * F_s_shake
+x3_t_shake = sym.inverse_laplace_transform(X3_s_shake, s, t, w)
+
+
+# G_x responses for kick, push and shake
+X1_s_kick = G_x * F_s_kick
+x1_t_kick = sym.inverse_laplace_transform(X1_s_kick, s, t)
+
+X1_s_push = G_x * F_s_push
+x1_t_push = sym.inverse_laplace_transform(X1_s_push, s, t)
+
+X1_s_shake = G_x * F_s_shake
+x1_t_shake = sym.inverse_laplace_transform(X1_s_shake, s, t, w)
+
+# Print equations inc. LaTex code
+print('x3 response - kick')
+sym.pprint(x3_t_kick.simplify())
+print(sym.latex(x3_t_kick.simplify()))
+print('x3 response - push')
+sym.pprint(x3_t_push.simplify())
+print(sym.latex(x3_t_push.simplify()))
+print('x3 response - shake')
+sym.pprint(x3_t_shake.simplify())
+print(sym.latex(x3_t_shake.simplify()))
+
+print('x1 response - kick')
+sym.pprint(x1_t_kick.simplify())
+print(sym.latex(x1_t_kick.simplify()))
+print('x1 response - push')
+sym.pprint(x1_t_push.simplify())
+print(sym.latex(x1_t_push.simplify()))
+print('x1 response - shake')
+sym.pprint(x1_t_shake.simplify())
+print(sym.latex(x1_t_shake.simplify()))
